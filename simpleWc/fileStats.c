@@ -5,92 +5,99 @@
 #include <ctype.h>
 #include <errno.h>
 
-int simplewc_str(const char* str, fileStats* stats){
-
-    if( str == NULL || stats == NULL)
-        return -1;
-
-    stats->bytes+= (long)strlen(str); // returns an int
-
+int simplewc_str(const char *str, fileStats *stats) {
+    if (!str || !stats) return -1;
+    stats->bytes += strlen(str);
     int in_word = 0;
-
-    for (const unsigned char* p = &str; *p != '\0'; ++p) {
-        if (*p == '\n') {
-            stats->lines += 1;
-        }
-
+    for (const unsigned char *p = (const unsigned char *)str; *p; ++p) {
+        if (*p == '\n') stats->lines++;
         if (isspace(*p)) {
             in_word = 0;
-        } else {
-            if (!in_word) {
-                stats->words += 1;
-                in_word = 1;
-            }
+        } else if (!in_word) {
+            stats->words++;
+            in_word = 1;
         }
     }
-
     return 0;
+}
 
-};
-
-
-/*
- * Reads file line-by-line (getline) and calls simplewc_str() to update stats.
- * Prints: "<lines> <words> <bytes> <filename>\n"
- *
- * Returns 0 on success, -1 on error (errno set).
- */
-int simplewc_file(const char* filename, fileStats* stats) {
+int simplewc_file(const char *filename, fileStats *stats)
+{
     if (filename == NULL || stats == NULL) {
         errno = EINVAL;
         return -1;
     }
 
-    FILE* f = fopen(filename, "rb");
-    if (!f) {
-        // errno set by fopen (e.g. ENOENT)
+    FILE *f = fopen(filename, "rb");
+    if (f == NULL) {
         return -1;
     }
 
-    char* line = NULL;
+    char *line = NULL;
     size_t cap = 0;
+    int retval = 0;
 
     while (1) {
         errno = 0;
         ssize_t nread = getline(&line, &cap, f);
         if (nread < 0) {
-            if (feof(f)) break;   // normal EOF
-            // read error
-            int saved = errno ? errno : EIO;
-            free(line);
-            fclose(f);
-            errno = saved;
-            return -1;
+            if (feof(f)) {
+                /* normal end of file */
+                break;
+            }
+            /* read error */
+            retval = -1;
+            break;
         }
 
-        // getline returns a NUL-terminated buffer; safe for strlen/scan.
+        /* update stats based on the line contents */
         if (simplewc_str(line, stats) != 0) {
-            int saved = errno;
-            free(line);
-            fclose(f);
-            errno = saved;
-            return -1;
+            retval = -1;
+            break;
         }
     }
 
     free(line);
 
+    int saved_errno = errno;
+
     if (fclose(f) != 0) {
-        // errno set by fclose
-        return -1;
+
+        if (retval == 0) {
+            retval = -1;
+            saved_errno = errno;
+        }
     }
 
-    printf("%ld %ld %ld %s\n", stats->lines, stats->words, stats->bytes, filename);
-    return 0;
+    if (retval == 0) {
+        printf("%ld %ld %ld %s\n", stats->lines, stats->words, stats->bytes, filename);
+    }
+    if (retval != 0) {
+        errno = saved_errno;
+    }
+    return retval;
 }
 
-int simplewc(const char** fileNames, int filesCount){
-    
+int simplewc(const char **fileNames, int filesCount)
+{
+    if (filesCount <= 0 || fileNames == NULL) {
+        return 1;
+    }
+    fileStats total = {0, 0, 0};
+    for (int i = 0; i < filesCount; i++) {
+        fileStats s = {0, 0, 0};
+        int rc = simplewc_file(fileNames[i], &s);
+        if (rc != 0) {
+            /* propagate errno to caller; simplewc_file already set errno */
+            return rc;
+        }
+        /* accumulate totals */
+        total.lines += s.lines;
+        total.words += s.words;
+        total.bytes += s.bytes;
+    }
+    if (filesCount > 1) {
+        printf("%ld %ld %ld total\n", total.lines, total.words, total.bytes);
+    }
     return 0;
-};
-
+}
