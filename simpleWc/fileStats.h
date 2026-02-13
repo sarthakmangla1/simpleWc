@@ -1,12 +1,5 @@
-#ifndef FILESTATS_H
+#ifndef FILESTATS_H // Guards for preventing the file to be included multiple times by th comiler as used in several files
 #define FILESTATS_H
-
-#include <stdio.h>
-#include <string.h>
-#include <stddef.h>
-#include <ctype.h>
-#include <assert.h>
-
 
 typedef struct fileStats fileStats;
 struct fileStats{
@@ -20,4 +13,4 @@ int simplewc_file(const char* filename, fileStats* stats);
 
 int simplewc(const char** fileNames, int filesCount);
 
-#endif // FILESTATS_H
+#endif

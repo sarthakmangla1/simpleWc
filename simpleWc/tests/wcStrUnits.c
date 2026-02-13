@@ -1,4 +1,8 @@
-#include "fileStats.h"
+#include "../fileStats.h"
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
 /* ---------------- Unit tests ---------------- */
 
 static void test_invalid_params(void) {
