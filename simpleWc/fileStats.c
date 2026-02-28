@@ -6,9 +6,11 @@
 #include <errno.h>
 
 int simplewc_str(const char *str, fileStats *stats) {
+
     if (!str || !stats) return -1;
     stats->bytes += strlen(str);
     int in_word = 0;
+
     for (const unsigned char *p = (const unsigned char *)str; *p; ++p) {
         if (*p == '\n') stats->lines++;
         if (isspace(*p)) {
@@ -18,6 +20,7 @@ int simplewc_str(const char *str, fileStats *stats) {
             in_word = 1;
         }
     }
+
     return 0;
 }
 
@@ -42,15 +45,11 @@ int simplewc_file(const char *filename, fileStats *stats)
         ssize_t nread = getline(&line, &cap, f);
         if (nread < 0) {
             if (feof(f)) {
-                /* normal end of file */
                 break;
             }
-            /* read error */
             retval = -1;
             break;
         }
-
-        /* update stats based on the line contents */
         if (simplewc_str(line, stats) != 0) {
             retval = -1;
             break;
@@ -59,22 +58,8 @@ int simplewc_file(const char *filename, fileStats *stats)
 
     free(line);
 
-    int saved_errno = errno;
-
-    if (fclose(f) != 0) {
-
-        if (retval == 0) {
-            retval = -1;
-            saved_errno = errno;
-        }
-    }
-
-    if (retval == 0) {
-        printf("%ld %ld %ld %s\n", stats->lines, stats->words, stats->bytes, filename);
-    }
-    if (retval != 0) {
-        errno = saved_errno;
-    }
+    if (fclose(f) != 0 && retval == 0)
+        retval = -1;
     return retval;
 }
 
@@ -84,20 +69,20 @@ int simplewc(const char **fileNames, int filesCount)
         return 1;
     }
     fileStats total = {0, 0, 0};
+    int had_error = 0;   //ensuring all files run if error in few
     for (int i = 0; i < filesCount; i++) {
         fileStats s = {0, 0, 0};
-        int rc = simplewc_file(fileNames[i], &s);
-        if (rc != 0) {
-            /* propagate errno to caller; simplewc_file already set errno */
-            return rc;
+        if (simplewc_file(fileNames[i], &s) != 0) {
+            fprintf(stderr, "%s: %s\n", fileNames[i], strerror(errno));
+            had_error = 1;
+            continue;
         }
-        /* accumulate totals */
+        printf("%ld %ld %ld %s\n", s.lines, s.words, s.bytes, fileNames[i]);
         total.lines += s.lines;
         total.words += s.words;
         total.bytes += s.bytes;
     }
-    if (filesCount > 1) {
+    if (filesCount > 1)
         printf("%ld %ld %ld total\n", total.lines, total.words, total.bytes);
-    }
-    return 0;
+    return had_error;
 }

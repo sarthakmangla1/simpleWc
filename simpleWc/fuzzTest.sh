@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-BIN=${1:-./simpleWc/simplewc}
+BIN=${1:-./simplewc}
 
 if [ ! -x "$BIN" ]; then
   echo "Binary not found/executable: $BIN"
@@ -17,7 +17,7 @@ echo "== Functional tests (compare with system wc) =="
 make_file() {
   name="$1"
   content="$2"
-  printf "%s" "$content" > "$TMPDIR/$name"
+  printf '%b' "$content" > "$TMPDIR/$name"
 }
 
 make_file f1 ""

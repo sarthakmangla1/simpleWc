@@ -46,3 +46,5 @@ that loops over the input files, prints the statistics, and updates a `stats` st
 8. Provide a Makefile or use CMake to simplify the building of your code.
 ​
 9. Optional/advanced: Use a framework like GoogleTest to simplify the writing and running of your unit tests.
+##
+Installed Google Tests via Brew

@@ -32,7 +32,7 @@ static void write_text_file(const char *filename, const char *text) {
 }
 
 static const char *make_name(int i, char *buf, size_t bufsz) {
-    snprintf(buf, bufsz, "test_simplewc_%d.txt", i);
+    snprintf(buf, bufsz, "/tmp/test_simplewc_%d.txt", i);
     return buf;
 }
 
@@ -133,8 +133,9 @@ static void test_accumulates_into_existing_stats(void) {
     remove(name);
 }
 
-static void test_two_files_like_real_wc(void) {
-    /* simulate calling simplewc_file twice like a multi‑file wc */
+static void test_stats_accumulate_across_calls(void) {
+    /* simplewc_file adds into whatever stats are passed; calling it
+     * twice on the same struct accumulates both files' counts */
     char n1[64], n2[64];
     make_name(6, n1, sizeof(n1));
     make_name(7, n2, sizeof(n2));
@@ -165,6 +166,6 @@ void run_wcFileTests(void) {
     test_whitespace_heavy();
     test_no_trailing_newline();
     test_accumulates_into_existing_stats();
-    test_two_files_like_real_wc();
+    test_stats_accumulate_across_calls();
     printf("All file tests passed.\n");
 }
